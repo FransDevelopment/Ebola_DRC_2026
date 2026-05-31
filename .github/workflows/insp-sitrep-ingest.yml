@@ -1,0 +1,152 @@
+name: INSP SitRep ingest
+
+on:
+  workflow_dispatch:
+    inputs:
+      limit:
+        description: "Maximum INSP SitRep posts to scan"
+        required: false
+        default: 100
+        type: number
+  schedule:
+    - cron: "17 16 * * *"
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: insp-sitrep-ingest-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  ingest:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          lfs: true
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Install PDF text tools
+        run: sudo apt-get update && sudo apt-get install -y poppler-utils
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: "pip"
+          cache-dependency-path: tools/requirements.txt
+
+      - name: Install Python dependencies
+        run: pip install -r tools/requirements.txt
+
+      - name: Sync official INSP SitRep sources
+        run: |
+          set -euo pipefail
+          limit="${{ github.event.inputs.limit }}"
+          if [ -z "${limit}" ]; then
+            limit=100
+          fi
+          python -m tools.insp_sitrep_sources \
+            --sync-official-pdfs \
+            --parse-pdfs \
+            --extract-table-ii \
+            --write-processed-drafts \
+            --write-processed-candidates \
+            --compare-processed \
+            --min-report-number 13 \
+            --limit "${limit}"
+
+      - name: Run focused tests
+        run: python -m pytest -q tests/test_insp_sitrep_sources.py
+
+      - name: Run INSP SitRep QA
+        run: python -m tools.qa insp_sitrep
+
+      - name: Upload ingest review packet
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: insp-sitrep-review-packet
+          path: |
+            data/insp_sitrep/source_reports.csv
+            data/insp_sitrep/extracted/
+            qa/
+          if-no-files-found: ignore
+
+      - name: Create draft data PR
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          durable_changes="$(git status --short -- data/insp_sitrep/raw data/insp_sitrep/processed data/insp_sitrep/source_reports.csv)"
+          if [ -z "${durable_changes}" ]; then
+            echo "No INSP SitRep data changes to propose."
+            exit 0
+          fi
+
+          branch="automation/insp-sitrep-latest"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git switch -c "${branch}"
+          git add data/insp_sitrep
+          if git diff --cached --quiet; then
+            echo "No staged INSP SitRep data changes to propose."
+            exit 0
+          fi
+          git commit -m "Data: sync INSP SitRep sources"
+          git fetch origin "${branch}:refs/remotes/origin/${branch}" || true
+          git push --force-with-lease origin "${branch}"
+
+          {
+            echo "## Summary"
+            echo "Scheduled/manual INSP SitRep source sync from the official INSP WordPress API/PDF links, with draft processed CSV candidate changes."
+            echo
+            echo "## Relationship to PR #24"
+            echo "This is intended to follow PR #24. PR #24 establishes the provenance/source-clock foundation; this workflow uses that foundation to make new INSP SitRep intake reproducible, reviewable, and safer when PDF structure changes."
+            echo
+            echo "## Contributor-flow note"
+            echo "This is intentionally broader than a normal data-only contributor PR because it adds maintainer tooling and a scheduled/manual workflow. The data PRs produced by this workflow are constrained to \`data/insp_sitrep\` source, review, and processed-candidate outputs."
+            echo
+            echo "## What this run does"
+            echo "- Syncs official INSP PDFs from SitRep 013 onward."
+            echo "- Records source timing, hashes, layout status, and extraction status in \`data/insp_sitrep/source_reports.csv\`."
+            echo "- Writes review packets under \`data/insp_sitrep/extracted/\`."
+            echo "- Writes processed CSV candidate rows only for source-gated Table II values with accepted evidence methods."
+            echo "- Records national headline values once in \`source_reports.csv\` instead of expanding repeated national totals across every health-zone row."
+            echo
+            echo "## Reviewer entry point"
+            echo "Start with \`data/insp_sitrep/extracted/review_summary.md\`. Compare changed \`data/insp_sitrep/processed/*.csv\` rows against the ingested official PDFs, then use \`source_review_queue.csv\` and \`processed_draft_review.csv\` for blockers, partial extraction, and value differences."
+            echo
+            echo "## Safety behavior"
+            echo "This workflow opens or updates a draft PR only. Unsupported PDF layouts, missing source identity, or unparsed fields are surfaced as review blockers instead of silently becoming authoritative processed data."
+            echo
+            echo "## Upstream data-shape note"
+            echo "This reduces manual INSP PDF ingestion work, but it does not remove the root cause: public outbreak updates are currently distributed as PDFs, and PDF layout changes are not structurally stable machine data. A companion structured CSV feed from INSP would make future automation higher confidence and less dependent on layout parsing. A CSV template has been shared with Dav Ebengo and Pierre Akilimali for review and consideration."
+            echo
+            echo "## Review summary"
+            echo
+            cat data/insp_sitrep/extracted/review_summary.md
+          } > /tmp/insp-sitrep-pr-body.md
+
+          existing_pr="$(
+            gh pr list \
+              --head "${branch}" \
+              --state open \
+              --json number \
+              --jq '.[0].number // empty'
+          )"
+          if [ -n "${existing_pr}" ]; then
+            gh pr edit "${existing_pr}" --body-file /tmp/insp-sitrep-pr-body.md
+            echo "Updated existing draft PR #${existing_pr}."
+          else
+            gh pr create \
+              --draft \
+              --base "${{ github.ref_name }}" \
+              --head "${branch}" \
+              --title "Data: sync INSP SitRep sources" \
+              --body-file /tmp/insp-sitrep-pr-body.md
+          fi

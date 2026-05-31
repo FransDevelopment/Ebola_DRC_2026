@@ -1,19 +1,39 @@
 source: "Institut National de Santé Publique (INSP) Situation Reports — SitRep MVE series (2026 Bundibugyo Ebolavirus outbreak)"
-citation: "Institut National de Santé Publique (INSP), Democratic Republic of the Congo. Situation reports on the 2026 Bundibugyo Ebolavirus outbreak (SitRep MVE 001, 002, 004–012, 2026; report 003 not committed). Health-zone geometry: DRC_Health_zones.shp (see data/shapefiles/)."
+citation: "Institut National de Santé Publique (INSP), Democratic Republic of the Congo. Situation reports on the 2026 Bundibugyo Ebolavirus outbreak (SitRep MVE 001, 002, 004–014, 2026; report 003 not committed). Health-zone geometry: DRC_Health_zones.shp (see data/shapefiles/)."
 source_url: "https://insp.cd/"
-retrieved_on: "2026-05-27"
+retrieved_on: "2026-05-31"
 license: "INSP outbreak sitreps; reuse with attribution to INSP and citation of the specific report number and date. Confirm distribution terms with INSP before external republication."
 contact: "pierre.akilimali@insp.cd"
 runtime: none
-period: "2026-05-14 to 2026-05-26 (processed extracts; see README)"
+period: "2026-05-14 to 2026-05-28 (processed extracts; see README)"
+provenance_sidecar: "provenance.csv"
+source_report_manifest: "source_reports.csv"
+clock_notes: |
+  The processed date column is the INSP SitRep report date for that extract,
+  not onset date, specimen date, or repository build date. retrieved_on is when
+  this repository obtained the SitRep series used in this folder.
 notes: |
-  Manually extracted from INSP SitRep MVE PDFs in raw/ (SitRep_MVE_001-2026.pdf
-  through SitRep_MVE_011-2026.pdf and SitRep_MVE_012_2026.pdf; 003 not committed).
+  Raw PDFs from SitRep 013 onward are synced from official INSP post/PDF URLs into
+  raw/ with tools.insp_sitrep_sources; source_reports.csv records official URL,
+  INSP post timing, PDF Last-Modified/ETag, local/official hashes, source-gate
+  status, PDF/report identity status, layout status, text extractability, evidence
+  confidence, draft status, and blocking reason for those synced reports.
+  Extracted public-PDF values can be written as processed-contract review drafts
+  under extracted/ only when source custody and evidence gates pass.
+  extracted/source_review_queue.csv is the report-level queue for blocked or partial
+  extraction and points reviewers back to the ingested raw PDF; extracted/review_summary.md
+  is the concise reviewer entry point for each ingest run.
+  Processed values are editorial extracts from INSP SitRep MVE PDFs in raw/
+  (SitRep_MVE_001-2026.pdf, SitRep_MVE_002-2026.pdf, and
+  SitRep_MVE_004-2026.pdf through SitRep_MVE_014-2026.pdf; 003 not committed).
   Twenty-eight processed vectors: insp_sitrep__<metric>__daily.csv with nom, date,
   and one value column. Outbreak-zone tables (cases, deaths, contacts, hospitalisation
   from 2026-05-20, PoE from 2026-05-20) cover 21 canonical zones only. Four
-  national_cumulative_* files repeat republic-wide totals on all 519 zones (ISO
-  dates; currently 2026-05-26). All processed files use ISO dates in date. ND =
-  not reported.
+  national_cumulative_* files repeat republic-wide totals on all 519 zones
+  (currently 2026-05-28). Current processed SitRep files preserve their existing
+  date strings; see README for folder-specific clock notes. New source sync records
+  national headline values once in source_reports.csv instead of expanding more
+  repeated national candidate rows across all zones. ND = not reported.
   Complements data/epi/.
-  process.R normalises nom to canonical names; does not parse PDFs.
+  process.R normalises nom to canonical names; it does not overwrite processed CSV
+  values from PDFs.
