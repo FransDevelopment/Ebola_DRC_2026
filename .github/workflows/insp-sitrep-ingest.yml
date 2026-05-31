@@ -108,6 +108,9 @@ jobs:
             echo "## Relationship to PR #24"
             echo "This is intended to follow PR #24. PR #24 establishes the provenance/source-clock foundation; this workflow uses that foundation to make new INSP SitRep intake reproducible, reviewable, and safer when PDF structure changes."
             echo
+            echo "## Contributor-flow note"
+            echo "This is intentionally broader than a normal data-only contributor PR because it adds maintainer tooling and a scheduled/manual workflow. The data PRs produced by this workflow are constrained to \`data/insp_sitrep\` source, review, and processed-candidate outputs."
+            echo
             echo "## What this run does"
             echo "- Syncs official INSP PDFs from SitRep 013 onward."
             echo "- Records source timing, hashes, layout status, and extraction status in \`data/insp_sitrep/source_reports.csv\`."
@@ -122,7 +125,7 @@ jobs:
             echo "This workflow opens or updates a draft PR only. Unsupported PDF layouts, missing source identity, or unparsed fields are surfaced as review blockers instead of silently becoming authoritative processed data."
             echo
             echo "## Upstream data-shape note"
-            echo "This reduces manual INSP PDF ingestion work, but it does not remove the root cause: public PDFs are not structurally stable machine data. A companion structured CSV feed from INSP would make future automation higher confidence and less dependent on layout parsing."
+            echo "This reduces manual INSP PDF ingestion work, but it does not remove the root cause: public outbreak updates are currently distributed as PDFs, and PDF layout changes are not structurally stable machine data. A companion structured CSV feed from INSP would make future automation higher confidence and less dependent on layout parsing. A CSV template has been shared with Dav Ebengo and Pierre Akilimali for review and consideration."
             echo
             echo "## Review summary"
             echo

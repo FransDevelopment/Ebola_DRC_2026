@@ -245,7 +245,7 @@ python -m tools.build_geojson   # if vectors pass QA
 
 ### Structural data follow-up
 
-This source-sync workflow reduces manual PDF intake and review work, but the root data-quality issue is still the public PDF shape. A structurally stable INSP companion CSV would let the repository ingest high-confidence values without depending on PDF layout. That CSV handoff is separate from this workflow change.
+This source-sync workflow reduces manual PDF intake and review work, but the root data-quality issue is still the public PDF shape. The outbreak updates are currently distributed as PDFs, and PDF layout changes are not structurally stable machine data. A structurally stable INSP companion CSV would let the repository ingest high-confidence values without depending on PDF layout. A CSV template has been created and emailed to Dav Ebengo and Pierre Akilimali for review and consideration; that CSV handoff is separate from this workflow change.
 
 ------------------------------------------------------------------------
 
